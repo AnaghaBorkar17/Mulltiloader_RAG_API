@@ -1,41 +1,50 @@
-# Multi-Loader RAG API 🚀
+# Multi-Loader RAG Assistant 🚀
 
-A multimodal Retrieval-Augmented Generation (RAG) system built with **FastAPI**, **LangChain**, and **Hugging Face**.
+A multimodal Retrieval-Augmented Generation (RAG) system built with **Streamlit**, **FastAPI**, **LangChain**, and **Hugging Face**.
 
-This system ingests data across diverse document types, OCR images, transcribed audio files, and SQL databases, indexes them into an in-memory vector store, and generates grounded answers using a local, lightweight LLM running completely offline on CPU.
+This system ingests data across diverse document formats, OCR images, transcribed audio files, and SQL databases, indexes them into an in-memory vector store, and generates grounded answers using either a local LLM or OpenAI.
 
 ---
 
 ## 🌟 Key Features
 
+- **Streamlit Web Application (`app.py` & `streamlit_app.py`)**:
+  - Interactive chat interface with conversation history and source attribution.
+  - Multi-file drag-and-drop uploader with 1-click sample document loading.
+  - Direct SQL query runner and database table indexer.
+  - Sidebar tuning: similarity threshold, top-K retrieved chunks, and LLM selection.
+- **FastAPI Backend (`api.py`)**:
+  - Full REST API with Swagger UI documentation at `/docs`.
+  - Supports `/upload`, `/sql`, and `/query` endpoints.
 - **Multi-Format Ingestion**:
   - **Documents**: PDF (`.pdf`), Microsoft Word (`.docx`), Plain Text (`.txt`), CSV (`.csv`)
   - **Images (OCR)**: Extracts text from images (`.png`, `.jpg`, `.jpeg`) using **Tesseract OCR**
   - **Audio (Speech-to-Text)**: Transcribes audio files (`.wav`, `.mp3`, `.m4a`) using **OpenAI Whisper** (with pure-Python WAV decoding via `scipy`)
   - **SQL Databases**: Connects via **SQLAlchemy** to ingest rows from SQLite, MySQL, PostgreSQL, or SQL queries into the knowledge base
-- **Local & Offline Inference**:
-  - **Embeddings**: `sentence-transformers/all-MiniLM-L6-v2` (free, runs locally)
-  - **LLM**: `Qwen/Qwen2.5-0.5B-Instruct` via Hugging Face `transformers` (optimized for local CPU inference without requiring OpenAI API keys or credits)
+- **Dual Inference Engine**:
+  - **OpenAI**: Fast, zero local RAM usage via `gpt-4o-mini` (cloud-optimized for Streamlit Cloud).
+  - **Local Model**: `Qwen/Qwen2.5-0.5B-Instruct` or extractive fallback running offline.
+  - **Embeddings**: `sentence-transformers/all-MiniLM-L6-v2` (free, runs locally).
 - **High Precision & Hallucination Prevention**:
-  - Semantic similarity search with cosine score calculation
-  - Strict relevance filtering (similarity threshold `>= 0.25`) to prevent cross-document contamination
-  - Fallback message when facts are not grounded in uploaded context
-  - Source tracking and deduplication returning exact file names and types
-- **Interactive Swagger UI**:
-  - Custom OpenAPI schema enabling direct file drag-and-drop in `/docs`
+  - Semantic similarity search with cosine score calculation.
+  - Strict relevance filtering (similarity threshold `>= 0.25`) to prevent cross-document contamination.
+  - Fallback message when facts are not grounded in uploaded context.
 
 ---
 
 ## 📁 Project Structure
 
 ```
-├── app.py              # FastAPI application & API endpoints
+├── app.py              # Streamlit Web Application (UI)
+├── streamlit_app.py    # Streamlit Cloud entrypoint alias
+├── api.py              # FastAPI REST API & Swagger UI
 ├── loaders.py          # Unified document loader (PDF, DOCX, TXT, CSV, OCR images, audio)
 ├── audio_loader.py     # Whisper audio transcription loader
 ├── sql_loader.py       # SQLAlchemy database loader
 ├── vectorstore.py      # Text splitting, MiniLM embeddings & in-memory vector store
 ├── rag.py              # Qwen local LLM generation pipeline & relevance scoring
-├── requirements.txt    # Project Python dependencies
+├── packages.txt        # System packages for Streamlit Cloud (tesseract-ocr, ffmpeg)
+├── requirements.txt    # Project Python dependencies (CPU-optimized PyTorch)
 ├── test_files/         # Sample test documents, images, and data
 ├── test_loader.py      # Script to verify loaders independently
 ├── test_rag.py         # End-to-end RAG pipeline test script
@@ -72,97 +81,37 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 4. (Optional) External Prerequisites
-
-- **Tesseract OCR** (for image OCR):
-  - Windows: Install [Tesseract-OCR](https://github.com/UB-Mannheim/tesseract/wiki) to `C:\Program Files\Tesseract-OCR\tesseract.exe`
-  - Linux: `sudo apt-get install tesseract-ocr`
-  - macOS: `brew install tesseract`
-
 ---
 
 ## 🚀 Running the Application
 
-Start the FastAPI development server:
+### Option A: Launch the Streamlit Web App (Recommended)
 
 ```bash
-uvicorn app:app --reload
+streamlit run app.py
 ```
+Opens in your browser at `http://localhost:8501`.
 
-The API will be available at:
-- **Base URL**: `http://127.0.0.1:8000`
-- **Interactive Swagger Docs**: `http://127.0.0.1:8000/docs`
-- **ReDoc Documentation**: `http://127.0.0.1:8000/redoc`
+### Option B: Launch the FastAPI REST Backend
+
+```bash
+uvicorn api:app --reload
+```
+The API documentation is accessible at `http://127.0.0.1:8000/docs`.
 
 ---
 
-## 📡 API Endpoints
+## ☁️ Deploying on Streamlit Community Cloud
 
-### 1. Health Check (`GET /`)
-Returns server status and supported file formats.
-
-### 2. Upload Files (`POST /upload`)
-Upload one or multiple files simultaneously (PDF, DOCX, TXT, CSV, PNG, JPG, MP3, WAV, etc.).
-
-**Response:**
-```json
-{
-  "message": "Files processed successfully",
-  "files": [
-    "sample.pdf",
-    "product_spec_image.png"
-  ],
-  "total_chunks": 42
-}
-```
-
-### 3. Ingest SQL Data (`POST /sql`)
-Ingest query results from any SQL database.
-
-**Request Body:**
-```json
-{
-  "database_url": "sqlite:///sample.db",
-  "query": "SELECT * FROM employees;"
-}
-```
-
-### 4. Query RAG (`POST /query`)
-Query the knowledge base using natural language.
-
-**Request Body:**
-```json
-{
-  "question": "What is the warranty policy for laptop purchases?"
-}
-```
-
-**Response:**
-```json
-{
-  "answer": "All laptops include a 1-year limited warranty covering manufacturer defects.",
-  "sources": [
-    {
-      "source": "uploads/sample.pdf",
-      "file_type": "pdf"
-    }
-  ]
-}
-```
-
----
-
-## 🧪 Testing
-
-Run test scripts locally:
-
-```bash
-# Test file loading across supported formats
-python test_loader.py
-
-# Test end-to-end RAG pipeline
-python test_rag.py
-```
+1. Push your repository to GitHub.
+2. In [Streamlit Community Cloud](https://share.streamlit.io):
+   - **Repository**: `AnaghaBorkar17/Mulltiloader_RAG_API`
+   - **Branch**: `main`
+   - **Main file path**: `app.py`
+3. (Optional) In **App Settings** > **Secrets**, add your OpenAI API Key for cloud inference:
+   ```toml
+   OPENAI_API_KEY = "sk-proj-..."
+   ```
 
 ---
 

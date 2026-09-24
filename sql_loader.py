@@ -8,7 +8,7 @@ def load_sql_data(
     database_url: str,
     query: str
 ):
-    """
+    r"""
     Connect to a SQL database and load rows as LangChain Documents.
     Automatically handles raw SQLite file paths (e.g. C:/path/db.sqlite or C:\path\db.sqlite)
     and converts them to SQLAlchemy-compatible URLs (sqlite:///C:/path/db.sqlite).
