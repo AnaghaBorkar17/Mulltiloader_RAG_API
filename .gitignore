@@ -1,0 +1,24 @@
+﻿# Environment variables and secrets
+.env
+.env.local
+*.env
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*.class
+.pytest_cache/
+
+# Uploads & temporary runtime files
+uploads/
+*.log
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# OS generated files
+.DS_Store
+Thumbs.db

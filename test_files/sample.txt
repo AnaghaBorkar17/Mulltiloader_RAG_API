@@ -1,0 +1,5 @@
+Introduction to Retrieval-Augmented Generation (RAG)
+
+RAG combines information retrieval with a language model. A RAG system first retrieves relevant documents from a knowledge base and then provides that information to a language model to generate an answer.
+
+A typical RAG pipeline contains document loading, text splitting, embeddings, vector storage, retrieval, and answer generation.
